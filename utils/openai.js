@@ -1,8 +1,9 @@
 const OpenAI = require("openai");
 const { zodResponseFormat } = require("openai/helpers/zod");
 const z = require("zod");
+const { DoesNPCRun } = require('../utils/gemini')
 
-const openai = new OpenAI({ apiKey: keyHere, dangerouslyAllowBrowser: true });
+const openai = new OpenAI({ apiKey: 'key here', dangerouslyAllowBrowser: true });
 
 const RandomOpponentCreation = z.object({
   name: z.string(),
@@ -15,7 +16,8 @@ const RandomOpponentCreation = z.object({
   agi: z.number(),
   skills: z.array(z.object({
     name: z.string(),
-    atkMult: z.number().describe('Must be at least 1.1; Can be up to 4.5')
+    atkMult: z.number().describe('Must be at least 1.1; Can be up to 4.0'),
+    type: z.enum(['Physical', 'Special'])
   })).describe('Enemies can have up to 6 skills'),
   ultimateSkill: z.object({
     name: z.string(),
@@ -53,8 +55,8 @@ const EnemyInit = async () => {
 
           **Context:**
 
-          - Environment: The Gleaming Vale; A lush, vibrant kingdom of rolling green hills and sparkling rivers, dotted with quaint villages and towering white-stone castles. The air is filled with the scent of blooming flowers, and banners bearing the royal crest flutter in the gentle breeze.
-          - Encounter Situation:
+          - Environment: The Quiet Hearth Village: Nestled in a fertile valley surrounded by rolling hills, the Quiet Hearth Village is a peaceful community of farmers, artisans, and traders. Cobblestone streets wind through the village, lined with quaint thatched-roof cottages and colorful market stalls. A large oak tree stands in the village square, its branches stretching wide, offering shade to villagers who gather there to socialize or trade goods. The air is filled with the scent of fresh bread from the bakery and the gentle hum of daily life.
+          - Encounter Situation: You challenge your childhood friend whos now a knight to a friendly duel.
           - Threat Level: 17,211
   `
       }
@@ -86,30 +88,48 @@ const OpponentNPCSpeech = async (opponent, userResponse, messagesArray) => {
       {
         role: "system",
         content: `
-          You are ${JSON.stringify({
+          You are the following NPC ${JSON.stringify({
           name: opponent.name, description: opponent.description
         })}.
-          You must stay in character and respond only as this NPC would in the context of the game world. Your responses should:
+        You must stay in character and respond only as this NPC would in the context of the game world. Your responses should:
 
-          1. Be BRIEF (one or two sentences maximum; one or two words if your character does not traditionally speak (like a zombie or wisp)).
-          2. Avoid all descriptive or atmospheric text. For example:
-            - Zombies should respond with *groan*, *snarl*, or similar sounds.
-            - Wisps should emit sounds like *whisper*, *hiss*, or cryptic fragments such as *lost...*.
-            - Animals should use simple sounds like *growl*, *roar*, or *chirp*.
-          3. Avoid verbose explanations, or any text outside the character's sound or limited vocalization capabilities.
-          4. Do not describe actions, scenery, or internal states unless explicitly asked, and even then, keep the response within character.
+        1. **Be BRIEF**:
+          - For characters capable of speech (e.g., humans, undead skeletons): Respond in **one or two sentences maximum**.
+          - For non-verbal characters (e.g., zombies, plants, wisps): Respond with **only sounds**, formatted using asterisks (e.g., *groan*, *hiss*, *swish*).
 
-          Your first message will be displayed as a speech bubble and must stay within these constraints. Respond strictly as your character, avoiding embellishments or explanations inconsistent with your role.
-`
+        2. **Formatting Rules**:
+          - **DO NOT** use asterisks (*) unless your character's response is non-verbal (e.g., zombie groans or plant noises).
+          - Characters capable of speech (e.g., undead skeletons) must speak in plain text, without asterisks.
 
+        3. **Avoid Descriptive or Atmospheric Text**:
+          - Do not include actions, scenery, or internal states unless explicitly asked.
+          - Examples:
+            - Zombies: *groan*, *snarl*.
+            - Wisps: *whisper...*, *spspss...*.
+            - Plants: *swish*, *hum...*.
+            - Animals: *growl*, *chirp*.
+            - Skeletons capable of speech: Plain text, such as "I hunger for souls. Release me from this curse."
+
+        4. **Immersion Rules**:
+          - Respond strictly within character, avoiding verbosity, embellishments, or out-of-context explanations.
+
+        5. **Speech Bubble Constraints**:
+          - Your response will be displayed in a speech bubble. Keep it concise, appropriate for the character, and free of unnecessary symbols or formatting.
+
+        Here is the context of the ongoing dialogue:
+        ${JSON.stringify(messagesArray)}
+
+        Respond as your character now, strictly adhering to these rules.
+          `
         ,
       }, ...messagesArray
     ],
   });
   const event = completion.choices[0].message.content;
   const endTime = performance.now()
-  console.log(messagesArray)
+  // console.log(messagesArray)
   console.log(event)
+  if (userResponse) await DoesNPCRun(event, userResponse)
   console.log(`Prompt Tokens: ${completion.usage.prompt_tokens}, Completion Tokens: ${completion.usage.completion_tokens}`)
   console.log(endTime - startTime)
   messagesArray.push({

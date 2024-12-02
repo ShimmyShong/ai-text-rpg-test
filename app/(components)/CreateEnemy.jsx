@@ -65,6 +65,7 @@ const CreateEnemy = () => {
                       <li key={skillIndex} className="text-gray-700">
                         <p>SKILL NAME: {skill.name}</p>
                         <p>SKILL ATTACK MULTIPLIER: {skill.atkMult}</p>
+                        <p>SKILL TYPE: {skill.type}</p>
                         {skill.description ? <p>SKILL DESCRIPTION: {skill.description}</p> : null}
                       </li>
                     ) : null
