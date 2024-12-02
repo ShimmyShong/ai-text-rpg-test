@@ -114,4 +114,34 @@ ${JSON.stringify({ name: opponent.name, description: opponent.description, type:
   return { event, messagesArray }
 }
 
-module.exports = { DoesNPCRun }
+const GeminiChat = async (userResponse, messagesArray) => {
+  if (userResponse) {
+    messagesArray.push({
+      role: "user",
+      content: userResponse
+    })
+  }
+  const startTime = performance.now()
+  const result = await testModel.generateContent(`You are an expert at controlling this text-based RPG.Allow the player to interact with the world and pursue their goals within their character's abilities. Respond only to their actions or questions. 
+
+                    Do NOT suggest what they should do next, and keep responses concise unless the player specifically asks for detailed descriptions or explanations.Only provide environmental narration when it is directly relevant to the player's actions. 
+
+                    If something is beyond their abilities, acknowledge it briefly and maintain consistency in the game world.Keep the tone engaging but avoid unnecessary elaboration unless prompted by the player.Now ask the player for their name and race, and introduce them to their new beginnings after for your first message.
+
+                    Message History: ${JSON.stringify(messagesArray)}
+`
+  )
+  const event = result.response.text();
+  const endTime = performance.now()
+  console.log(messagesArray)
+  console.log(event)
+  console.log(`Input tokens: ${result.response.usageMetadata.promptTokenCount}, Output tokens: ${result.response.usageMetadata.candidatesTokenCount}`)
+  console.log(endTime - startTime)
+  messagesArray.push({
+    role: "assistant",
+    content: event
+  })
+  return { event, messagesArray }
+}
+
+module.exports = { DoesNPCRun, GeminiChat }

@@ -137,4 +137,56 @@ const OpponentNPCSpeech = async (opponent, userResponse, messagesArray) => {
   return { event, messagesArray }
 }
 
-module.exports = { EnemyInit, OpponentNPCSpeech }
+const MainChat = async (userResponse, messagesArray) => {
+  try {
+    if (userResponse) {
+      messagesArray.push({
+        role: "user",
+        content: userResponse
+      })
+    }
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: `
+          You are an expert at controlling this text-based RPG. The player must interact with the world through their character's abilities and handle the situations presented to them. The player cannot dictate changes to the world, environment, or context. Their character must respond to the world as it unfolds.
+
+Present scenarios for the player to navigate, but do NOT allow them to change the setting or circumstances arbitrarily. If the player tries to alter the game world (e.g., asking for a different setting), acknowledge briefly that they cannot, and prompt them to interact with the existing scenario.
+
+Respond only to their actions or questions within the context of the current situation. Keep responses concise unless the player requests detailed information. If the player attempts something beyond their abilities, explain why it isn't possible briefly and consistently.
+
+Start by asking for the player’s name and race, then place them in a situation they must address. Do not allow them to change the starting scenario arbitrarily.
+
+---
+
+### ** Key Adjustments ** !!This is specifically for sandbox-like changes, if they want to naturally leave somewhere it is completely fine.
+        1. ** Restrict Player Agency **:
+        - Make it clear that the player must respond to the given world and cannot dictate where they start or what happens.
+
+2. ** Handle Attempts to Alter the World **:
+        - Briefly acknowledge the player's request to change the world and redirect them to interact with the current scenario.
+      ---
+
+      This approach ensures the RPG is focused on the situations presented by the game rather than becoming a sandbox where the player dictates the environment.The key is to enforce the rules while keeping the experience immersive and engaging.
+`
+        }, ...messagesArray
+      ],
+      temperature: 1.2
+    })
+
+    const event = completion.choices[0].message.content
+    console.log(completion.usage.prompt_tokens_details.cached_tokens)
+    console.log(`Prompt Tokens: ${completion.usage.prompt_tokens}, Completion Tokens: ${completion.usage.completion_tokens}`)
+    messagesArray.push({
+      role: "assistant",
+      content: event
+    })
+    return { event, messagesArray }
+  } catch (err) {
+    console.error(err)
+  }
+}
+
+module.exports = { EnemyInit, OpponentNPCSpeech, MainChat }
