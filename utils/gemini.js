@@ -21,7 +21,7 @@ const schema = {
 
 
 const model = genAI.getGenerativeModel({
-  model: "gemini-1.5-flash-001",
+  model: "gemini-1.5-flash-8b-001",
   generationConfig: {
     responseMimeType: "application/json",
     responseSchema: schema
@@ -39,7 +39,7 @@ const DoesNPCRun = async (prompt, userResponse) => {
 
       2. **npc_leave_battle_state**: Return 'true' if the NPC is talking about surrendering, running, or suggesting anything that would lead to leaving the battle state. Return 'false' otherwise.
 
-      3. ENSURE THAT YOU'RE UNDERSTANDING THAT ANYTHING THAT INVOLVES THEM TALKING ABOUT MOVING ONTO SOMETHING THATS NOT BATTLING SHOULD RETURN TRUE
+      3. ENSURE THAT YOU'RE UNDERSTANDING THAT ANYTHING THAT INVOLVES THEM TALKING ABOUT MOVING ONTO SOMETHING THATS NOT BATTLING SHOULD RETURN TRUE, **MAKE SURE ITS FAIRLY EXPLICIT THAT THEY'RE FINISHED BATTLING THOUGH**
 
       Keep in mind that collaboration, truces, or pauses in fighting (even temporarily) should result in 'true' for npc_leave_battle_state.
 

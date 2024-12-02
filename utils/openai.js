@@ -3,7 +3,7 @@ const { zodResponseFormat } = require("openai/helpers/zod");
 const z = require("zod");
 const { DoesNPCRun } = require('../utils/gemini')
 
-const openai = new OpenAI({ apiKey: 'key here', dangerouslyAllowBrowser: true });
+const openai = new OpenAI({ apiKey: "key here", dangerouslyAllowBrowser: true });
 
 const RandomOpponentCreation = z.object({
   name: z.string(),
@@ -27,7 +27,7 @@ const RandomOpponentCreation = z.object({
   }).nullable()
 });
 
-const EnemyInit = async () => {
+const EnemyInit = async (environment, encounter) => {
   const startTime = performance.now()
   const completion = await openai.beta.chat.completions.parse({
     model: "gpt-4o-mini",
@@ -56,8 +56,8 @@ const EnemyInit = async () => {
           **Context:**
 
           - Environment: The Quiet Hearth Village: Nestled in a fertile valley surrounded by rolling hills, the Quiet Hearth Village is a peaceful community of farmers, artisans, and traders. Cobblestone streets wind through the village, lined with quaint thatched-roof cottages and colorful market stalls. A large oak tree stands in the village square, its branches stretching wide, offering shade to villagers who gather there to socialize or trade goods. The air is filled with the scent of fresh bread from the bakery and the gentle hum of daily life.
-          - Encounter Situation: You challenge your childhood friend whos now a knight to a friendly duel.
-          - Threat Level: 17,211
+          ${encounter ? `- Encounter Situation: ${encounter}` : null}
+          - Threat Level: 120
   `
       }
     ],
@@ -108,7 +108,7 @@ const OpponentNPCSpeech = async (opponent, userResponse, messagesArray) => {
             - Wisps: *whisper...*, *spspss...*.
             - Plants: *swish*, *hum...*.
             - Animals: *growl*, *chirp*.
-            - Skeletons capable of speech: Plain text, such as "I hunger for souls. Release me from this curse."
+            - Skeletons capable of speech: Plain text, such as "I hunger for souls." (just an example)
 
         4. **Immersion Rules**:
           - Respond strictly within character, avoiding verbosity, embellishments, or out-of-context explanations.
@@ -116,10 +116,8 @@ const OpponentNPCSpeech = async (opponent, userResponse, messagesArray) => {
         5. **Speech Bubble Constraints**:
           - Your response will be displayed in a speech bubble. Keep it concise, appropriate for the character, and free of unnecessary symbols or formatting.
 
-        Here is the context of the ongoing dialogue:
-        ${JSON.stringify(messagesArray)}
-
-        Respond as your character now, strictly adhering to these rules.
+        Respond as your character now, strictly adhering to these rules. Remember this you are in a battle
+        Here is the context of the ongoing battle dialogue:
           `
         ,
       }, ...messagesArray
