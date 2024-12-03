@@ -1,6 +1,6 @@
 const { GoogleGenerativeAI, SchemaType } = require('@google/generative-ai');
 
-const genAI = new GoogleGenerativeAI("key here");
+const genAI = new GoogleGenerativeAI("key");
 
 const schema = {
   type: SchemaType.OBJECT,
@@ -17,7 +17,16 @@ const schema = {
   required: ["npc_leave_battle_state"],
 }
 
-
+const battleSchema = {
+  type: SchemaType.OBJECT,
+  properties: {
+    enter_battle_state: {
+      type: SchemaType.BOOLEAN,
+      description: 'This must be true if the NPC is talking about doing something that will make the player and npc enter the battle state.'
+    }
+  },
+  required: ["enter_battle_state"],
+}
 
 
 const model = genAI.getGenerativeModel({
@@ -25,6 +34,14 @@ const model = genAI.getGenerativeModel({
   generationConfig: {
     responseMimeType: "application/json",
     responseSchema: schema
+  }
+});
+
+const battleModel = genAI.getGenerativeModel({
+  model: "gemini-1.5-flash-8b-001",
+  generationConfig: {
+    responseMimeType: "application/json",
+    responseSchema: battleSchema
   }
 });
 
@@ -56,6 +73,38 @@ const DoesNPCRun = async (prompt, userResponse) => {
   }
 };
 
+const DoesNPCBattle = async (prompt, userResponse) => {
+  try {
+    const npcMessageAnalysisPrompt = `
+      You are analyzing the dialogue between a player and an NPC to determine whether they are preparing to enter a battle state. Carefully analyze their messages and intent, focusing on the following:
+
+      1. **npc_intent**: Describe the NPC's intent and reasoning. Explain whether the NPC is showing hostility, defending themselves, threatening the player, or escalating toward a battle state. If the NPC is trying to avoid a fight, explain why.
+
+      2. **enter_battle_state**: Return 'true' if the dialogue indicates that the NPC and/or the player are escalating toward a fight or preparing to engage in combat. Examples:
+        - Threats from the NPC or player (e.g., "You leave me no choice!", "Prepare yourself!")
+        - Clear hostility (e.g., insults, provocation, or declarations of attack).
+        - Defensive or retaliatory behavior (e.g., "I won't back down!", "I'll protect myself if I have to!").
+        Return 'false' if the dialogue indicates an effort to avoid a fight, de-escalate the situation, or maintain peace.
+
+      3. **Key Notes**:
+        - Consider both the player's and NPC's messages in your analysis.
+        - If either message clearly shows an attempt to **de-escalate** (e.g., offering a truce, backing off, apologizing), return 'false' for enter_battle_state.
+        - If both sides remain neutral or non-hostile, assume 'false' unless hostility is explicitly shown.
+
+      Player Message: ${userResponse}
+      NPC Message: ${prompt}
+`;
+
+
+    const result = await battleModel.generateContent(npcMessageAnalysisPrompt);
+
+    console.log(result.response.text());
+    console.log(`Input tokens: ${result.response.usageMetadata.promptTokenCount}, Output tokens: ${result.response.usageMetadata.candidatesTokenCount}`);
+    return result.response.text()
+  } catch (err) {
+    console.error(err);
+  }
+};
 
 // attempt to replicate OpponentNPCSpeech in openai.js, sucks very much with gemini flash
 const GeminiNPCSpeech = async (opponent, userResponse, messagesArray) => {
@@ -144,4 +193,15 @@ const GeminiChat = async (userResponse, messagesArray) => {
   return { event, messagesArray }
 }
 
-module.exports = { DoesNPCRun, GeminiChat }
+const EncounterSummarize = async (messagesArray) => {
+  const result = await testModel.generateContent(`
+  The context for the summarization you're supposed to create is for an text based RPG.
+  Now, here are the last few messages between the player and the game that lead to them to go into a battle state, create a summary based on it:
+  ${JSON.stringify(messagesArray.slice(-6))}
+  `)
+
+  const event = result.response.text();
+  console.log(event)
+}
+
+module.exports = { DoesNPCRun, DoesNPCBattle, GeminiChat, EncounterSummarize }

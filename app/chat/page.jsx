@@ -7,7 +7,9 @@ import { Send, Sword, Backpack, Scroll, User } from 'lucide-react'
 const Chat = () => {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([{ role: 'loading', content: '...' }])
+  const [disabled, setDisabled] = useState(false)
   const messagesEndRef = useRef(null)
+  const inputRef = useRef(null)
 
   const scrollToBottom = () => {
     if (!messagesEndRef) return
@@ -17,6 +19,7 @@ const Chat = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!message.trim()) return;
+    setDisabled(true)
     setMessage('');
     setMessages([...messages,
     {
@@ -30,7 +33,9 @@ const Chat = () => {
     ])
     scrollToBottom()
     const { messagesArray } = await MainChat(message, messages)
+    setDisabled(false)
     setMessages([...messagesArray])
+    inputRef.current.focus();
   };
 
   useEffect(() => {
@@ -103,17 +108,23 @@ const Chat = () => {
       {/* Message input */}
       <div className="bg-gray-800 border-t border-purple-500 px-4 py-4 sm:px-6">
         <div className="max-w-6xl mx-auto">
-          <form onSubmit={handleSubmit} className="flex space-x-4">
+          <form onSubmit={handleSubmit} className={`flex space-x-4 ${disabled ? 'opacity-50' : ''}`}>
             <input
               type="text"
+              ref={inputRef}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="What will you do next, adventurer?"
-              className="flex-1 focus:ring-2 focus:ring-purple-500 focus:outline-none appearance-none w-full text-sm leading-6 text-gray-100 placeholder-gray-400 bg-gray-700 rounded-full py-3 px-5 shadow-inner transition duration-300 ease-in-out"
+              className={`flex-1 focus:ring-2 focus:ring-purple-500 focus:outline-none appearance-none w-full text-sm leading-6 text-gray-100 placeholder-gray-400 bg-gray-700 rounded-full py-3 px-5 shadow-inner transition duration-300 ease-in-out ${disabled ? 'bg-gray-600 text-gray-500 placeholder-gray-500' : ''
+                }`}
             />
             <button
               type="submit"
-              className="inline-flex items-center rounded-full border border-purple-500 bg-purple-600 p-3 text-white shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition duration-300 ease-in-out"
+              disabled={disabled}
+              className={`inline-flex items-center rounded-full border ${disabled
+                ? 'border-gray-500 bg-gray-500 cursor-not-allowed'
+                : 'border-purple-500 bg-purple-600 hover:bg-purple-700'
+                } p-3 text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition duration-300 ease-in-out`}
             >
               <Send className="h-5 w-5" />
             </button>

@@ -1,9 +1,9 @@
 const OpenAI = require("openai");
 const { zodResponseFormat } = require("openai/helpers/zod");
 const z = require("zod");
-const { DoesNPCRun } = require('../utils/gemini')
+const { DoesNPCRun, DoesNPCBattle, EncounterSummarize } = require('../utils/gemini')
 
-const openai = new OpenAI({ apiKey: "key here", dangerouslyAllowBrowser: true });
+const openai = new OpenAI({ apiKey: "key", dangerouslyAllowBrowser: true });
 
 const RandomOpponentCreation = z.object({
   name: z.string(),
@@ -151,15 +151,20 @@ const MainChat = async (userResponse, messagesArray) => {
         {
           role: 'system',
           content: `
-          You are an expert at controlling this text-based RPG. The player must interact with the world through their character's abilities and handle the situations presented to them. The player cannot arbitrarily dictate changes to the world, environment, or context but may naturally explore the world through their actions.
-
-Present the current setting and allow the player to interact with it freely. Keep responses BRIEF, especially for straightforward questions (e.g., "no gold?"). Provide concise answers in 1 sentence or less unless the player explicitly asks for detailed explanations. 
-
-When the player expresses intent (e.g., finding a village), guide them naturally through exploration without assuming immediate outcomes. Let discoveries happen step-by-step and avoid skipping ahead.
+          You are an expert at controlling this text-based RPG.
 
 If the player attempts something beyond their abilities, explain why it isn't possible briefly and consistently. Start by asking for the player’s name and race, then place them in a situation they must address.
  `
-        }, ...messagesArray
+        }, ...messagesArray,
+        {
+          role: 'system',
+          content: `
+          The player must interact with the world through their character's abilities and handle the situations presented to them. The player cannot arbitrarily dictate changes to the world, environment, or context but may naturally explore the world through their actions.
+
+Present the current setting and allow the player to interact with it freely. Avoid explicitly asking "What would you like to do next?" after every response. Instead, leave the narrative open-ended so the player is naturally encouraged to respond. Keep responses BRIEF, especially for straightforward questions (e.g., "no gold?"). Provide concise answers in 1 sentence or less unless the player explicitly asks for detailed explanations.
+
+When the player expresses intent (e.g., finding a village), guide them naturally through exploration without assuming immediate outcomes. Let discoveries happen step-by-step and avoid skipping ahead.`
+        }
       ],
       temperature: 1.2
     })
@@ -167,6 +172,10 @@ If the player attempts something beyond their abilities, explain why it isn't po
     const event = completion.choices[0].message.content
     console.log(completion.usage.prompt_tokens_details.cached_tokens)
     console.log(`Prompt Tokens: ${completion.usage.prompt_tokens}, Completion Tokens: ${completion.usage.completion_tokens}`)
+    if (userResponse) {
+      const result = JSON.parse(await DoesNPCBattle(event, userResponse))
+      console.log(result.enter_battle_state)
+    }
     messagesArray.push({
       role: "assistant",
       content: event
